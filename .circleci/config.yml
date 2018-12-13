@@ -1,0 +1,117 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/node:8.12-browsers
+
+    working_directory: ~/repo
+
+    steps:
+      - checkout
+
+      - restore_cache:
+          keys:
+            - angular-starter-app-build-{{ .Branch }}-{{ checksum "package-lock.json" }}
+            - angular-starter-app-build-{{ .Branch }}
+            - angular-starter-app-build
+
+      - run:
+          name: Install Dependencies
+          command: npm install
+
+      - save_cache:
+          key: angular-starter-app-build-{{ .Branch }}-{{ checksum "package-lock.json" }}
+          paths:
+            - node_modules
+
+      - run:
+          name: Code Style and Lint Check
+          command: npm run check
+
+      - run:
+          name: Unit Test
+          command: npm run test:ci
+
+      - persist_to_workspace:
+          root: ~/repo
+          paths:
+            - package-lock.json
+            - package.json
+            - cypress.json
+            - node_modules/
+            - cypress/
+
+  e2e:
+    docker:
+      - image: cypress/browsers
+
+    working_directory: ~/repo
+
+    steps:
+      - attach_workspace:
+          at: ~/repo
+
+      - restore_cache:
+          keys:
+            - angular-starter-app-e2e-{{ .Branch }}-{{ checksum "package-lock.json" }}
+            - angular-starter-app-e2e-{{ .Branch }}
+            - angular-starter-app-e2e
+
+      - run:
+          name: Install Cypress
+          command: ls /root/.cache/Cypress || npm run e2e:install
+
+      - save_cache:
+          key: angular-starter-app-e2e-{{ .Branch }}-{{ checksum "package-lock.json" }}
+          paths:
+            - /root/.cache
+
+      - run: npm run e2e:ci
+
+  deploy:
+    docker:
+      - image: alpine:3.6
+    steps:
+      - apk add curl
+      - curl -X POST --data-urlencode "payload={\"text\":\"Deployed angular-starter-app"}" "https://hooks.slack.com/services/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"
+
+workflows:
+  version: 2
+  test_and_deploy:
+    jobs:
+      - build
+      - start_e2e:
+          type: approval
+          requires:
+          - build
+          filters:
+            branches:
+              only:
+                - dev
+                - circleCISetup
+      - e2e:
+          requires:
+            - start_e2e
+            - build
+          filters:
+            branches:
+              only:
+                - dev
+                - circleCISetup
+                - master
+      - allow_deploy:
+          type: approval
+          requires:
+            - e2e
+          filters:
+            branches:
+              only:
+              - dev
+              - circleCISetup
+      - deploy:
+          requires:
+            - allow_deploy
+          filters:
+            branches:
+              only: master
+

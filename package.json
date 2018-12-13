@@ -7,8 +7,11 @@
     "build": "ng build",
     "build:prod": "ng build --prod",
     "test": "ng test",
+    "test:ci": "ng test --watch=false",
+    "check": "echo 'Setup Prettier'",
     "lint": "ng lint",
-    "e2e": "cypress run"
+    "e2e": "cypress open",
+    "e2e:ci": "cypress run"
   },
   "private": true,
   "dependencies": {
