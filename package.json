@@ -11,6 +11,7 @@
     "check": "echo 'Setup Prettier'",
     "lint": "ng lint",
     "e2e": "cypress open",
+    "e2e:install": "cypress install",
     "e2e:ci": "cypress run"
   },
   "private": true,
